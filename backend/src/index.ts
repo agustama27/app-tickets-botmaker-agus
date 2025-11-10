@@ -247,15 +247,70 @@ app.post("/webhooks/botmaker", async (req, res) => {
     }
 
     // Extraer datos del contacto de las variables o del payload
+    // Mapear variables de Botmaker a formato interno
+    const contactFirstName = variables.contactFirstName || firstName
+    const contactLastName = variables.contactLastName || lastName
+    const contactEmail = variables.contactEmails || variables.contactEmail || variables.email
+    const areaDeTrabajo = variables.areaDeTrabajo
+    const puestoDeTrabajo = variables.puestoDeTrabajo
+    
     const contactInfo = {
-      name: variables.name || `${firstName || ""} ${lastName || ""}`.trim() || undefined,
-      email: variables.email,
-      area_id: variables.area_id,
-      team_id: variables.team_id,
+      name: variables.name || (contactFirstName && contactLastName 
+        ? `${contactFirstName} ${contactLastName}`.trim() 
+        : contactFirstName || contactLastName || undefined),
+      email: contactEmail,
+      area_id: variables.area_id, // Si viene como UUID directamente
+      team_id: variables.team_id, // Si viene como UUID directamente
+      areaDeTrabajo: areaDeTrabajo, // Nombre del área (para buscar por nombre)
+      puestoDeTrabajo: puestoDeTrabajo, // Nombre del puesto/equipo (para buscar por nombre)
     }
 
     // Extraer tag/type de solicitud de las variables
     const tag = variables.tag || variables.tipo_solicitud || variables.request_type
+
+    // Buscar área y equipo por nombre si vienen como texto
+    let areaId: string | null = null
+    let teamId: string | null = null
+
+    if (contactInfo.areaDeTrabajo && !contactInfo.area_id) {
+      // Buscar área por nombre
+      const { data: area } = await supabase
+        .from("areas")
+        .select("id")
+        .ilike("name", contactInfo.areaDeTrabajo)
+        .limit(1)
+        .single()
+      
+      if (area) {
+        areaId = area.id
+      } else {
+        console.log(`⚠️ Área no encontrada: ${contactInfo.areaDeTrabajo}`)
+      }
+    } else if (contactInfo.area_id) {
+      areaId = contactInfo.area_id
+    }
+
+    if (contactInfo.puestoDeTrabajo && !contactInfo.team_id) {
+      // Buscar equipo por nombre (opcionalmente filtrar por área)
+      let teamQuery = supabase
+        .from("teams")
+        .select("id")
+        .ilike("name", contactInfo.puestoDeTrabajo)
+      
+      if (areaId) {
+        teamQuery = teamQuery.eq("area_id", areaId)
+      }
+      
+      const { data: team } = await teamQuery.limit(1).single()
+      
+      if (team) {
+        teamId = team.id
+      } else {
+        console.log(`⚠️ Equipo no encontrado: ${contactInfo.puestoDeTrabajo}`)
+      }
+    } else if (contactInfo.team_id) {
+      teamId = contactInfo.team_id
+    }
 
     // 1. Buscar o crear contacto
     let contact: Contact | null = null
@@ -279,8 +334,8 @@ app.post("/webhooks/botmaker", async (req, res) => {
       // Si hay datos de registro (primera sesión), actualizar
       if (contactInfo.name) updateData.name = contactInfo.name
       if (contactInfo.email) updateData.email = contactInfo.email
-      if (contactInfo.area_id) updateData.area_id = contactInfo.area_id
-      if (contactInfo.team_id) updateData.team_id = contactInfo.team_id
+      if (areaId) updateData.area_id = areaId
+      if (teamId) updateData.team_id = teamId
 
       const { data: updatedContact } = await supabase
         .from("contacts")
@@ -302,8 +357,8 @@ app.post("/webhooks/botmaker", async (req, res) => {
 
       if (contactInfo.name) newContact.name = contactInfo.name
       if (contactInfo.email) newContact.email = contactInfo.email
-      if (contactInfo.area_id) newContact.area_id = contactInfo.area_id
-      if (contactInfo.team_id) newContact.team_id = contactInfo.team_id
+      if (areaId) newContact.area_id = areaId
+      if (teamId) newContact.team_id = teamId
 
       const { data: createdContact } = await supabase
         .from("contacts")
@@ -376,8 +431,8 @@ app.post("/webhooks/botmaker", async (req, res) => {
           newTicket.type = tag
         }
 
-        if (contact.area_id) newTicket.area_id = contact.area_id
-        if (contact.team_id) newTicket.team_id = contact.team_id
+        if (areaId || contact.area_id) newTicket.area_id = areaId || contact.area_id
+        if (teamId || contact.team_id) newTicket.team_id = teamId || contact.team_id
 
         const { data: createdTicket } = await supabase
           .from("tickets")
