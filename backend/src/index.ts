@@ -403,8 +403,11 @@ app.post("/webhooks/botmaker", async (req, res) => {
         }
 
         // Si hay datos de contacto, actualizar área y equipo del ticket
-        if (contact.area_id) updateData.area_id = contact.area_id
-        if (contact.team_id) updateData.team_id = contact.team_id
+        if (areaId) updateData.area_id = areaId
+        else if (contact.area_id) updateData.area_id = contact.area_id
+        
+        if (teamId) updateData.team_id = teamId
+        else if (contact.team_id) updateData.team_id = contact.team_id
 
         const { data: updatedTicket } = await supabase
           .from("tickets")
