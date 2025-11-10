@@ -191,20 +191,48 @@ app.post("/webhooks/botmaker", async (req, res) => {
     const payload = req.body
     console.log("Botmaker webhook received:", JSON.stringify(payload, null, 2))
 
-    // Estructura esperada del webhook de Botmaker:
-    // - event: tipo de evento (message, session_start, etc.)
-    // - chatId: ID de la sesión de chat
-    // - channelId: ID del canal (WhatsApp, etc.)
-    // - phone: número de teléfono
-    // - message: datos del mensaje (si aplica)
-    // - tag: etiqueta asignada en Botmaker (tipo de solicitud)
-    // - contactData: datos del contacto (nombre, email, área, equipo) - del flujo de registro
+    // Formato real de Botmaker:
+    // - type: tipo de evento ("message", etc.)
+    // - sessionId: ID de la sesión de chat
+    // - chatChannelId: ID del canal
+    // - whatsappNumber: número de teléfono
+    // - contactId: ID del contacto
+    // - messages: array de mensajes
+    // - firstName, lastName: nombre del contacto
+    // - variables: variables del flujo (puede contener area_id, team_id, email, etc.)
 
-    const { event, chatId, channelId, phone, message, tag, contactData } = payload
+    const {
+      type,
+      sessionId,
+      chatChannelId,
+      whatsappNumber,
+      contactId,
+      messages,
+      firstName,
+      lastName,
+      variables = {},
+      customerId,
+    } = payload
+
+    // Mapear formato de Botmaker a formato interno
+    const phone = whatsappNumber || contactId
+    const chatId = sessionId
+    const channelId = chatChannelId
 
     if (!phone || !chatId) {
-      return res.status(400).json({ error: "Missing required fields: phone, chatId" })
+      return res.status(400).json({ error: "Missing required fields: whatsappNumber/contactId, sessionId" })
     }
+
+    // Extraer datos del contacto de las variables o del payload
+    const contactData = {
+      name: variables.name || `${firstName || ""} ${lastName || ""}`.trim() || undefined,
+      email: variables.email,
+      area_id: variables.area_id,
+      team_id: variables.team_id,
+    }
+
+    // Extraer tag/type de solicitud de las variables
+    const tag = variables.tag || variables.tipo_solicitud || variables.request_type
 
     // 1. Buscar o crear contacto
     let contact: Contact | null = null
@@ -268,8 +296,11 @@ app.post("/webhooks/botmaker", async (req, res) => {
       return res.status(500).json({ error: "Failed to create/update contact" })
     }
 
-    // 2. Si es inicio de sesión o nuevo mensaje, crear o actualizar ticket
-    if (event === "session_start" || event === "message" || event === "tag_assigned") {
+    // 2. Detectar si es nueva sesión o mensaje existente
+    const isNewSession = !existingContact || sessionId !== existingContact.chat_id
+    
+    // 3. Si es mensaje o nueva sesión, crear o actualizar ticket
+    if (type === "message" || isNewSession) {
       // Buscar ticket existente para este chat
       const { data: existingTicket } = await supabase
         .from("tickets")
@@ -281,7 +312,7 @@ app.post("/webhooks/botmaker", async (req, res) => {
 
       let ticket: Ticket | null = null
 
-      if (existingTicket) {
+      if (existingTicket && !isNewSession) {
         // Actualizar ticket existente
         const updateData: Partial<Ticket> = {
           last_message_at: new Date().toISOString(),
@@ -340,25 +371,31 @@ app.post("/webhooks/botmaker", async (req, res) => {
         }
       }
 
-      // 3. Si hay mensaje, guardarlo
-      if (message && ticket) {
-        const newMessage: Partial<Message> = {
-          ticket_id: ticket.id,
-          direction: message.direction || "inbound",
-          text: message.text || message.body,
-          media_url: message.mediaUrl || message.media_url,
-          botmaker_message_id: message.id || message.messageId,
-          at: message.timestamp ? new Date(message.timestamp).toISOString() : new Date().toISOString(),
+      // 4. Si hay mensajes, guardarlos
+      if (messages && Array.isArray(messages) && ticket) {
+        for (const msg of messages) {
+          // Determinar dirección: "bot" = outbound, otros = inbound
+          const direction = msg.from === "bot" ? "outbound" : "inbound"
+          
+          const newMessage: Partial<Message> = {
+            ticket_id: ticket.id,
+            direction,
+            text: msg.message || msg.text,
+            botmaker_message_id: msg._id_ || msg.id,
+            at: msg.date ? new Date(msg.date).toISOString() : new Date().toISOString(),
+          }
+
+          await supabase.from("messages").insert(newMessage)
+
+          // Emitir evento de nuevo mensaje solo si es inbound (del usuario)
+          if (direction === "inbound") {
+            const transformedMessage = transformMessage(
+              { ...newMessage, id: msg._id_ || msg.id || "" },
+              phone
+            )
+            io.emit("MESSAGE_NEW", transformedMessage)
+          }
         }
-
-        await supabase.from("messages").insert(newMessage)
-
-        // Emitir evento de nuevo mensaje
-        const transformedMessage = transformMessage(
-          { ...newMessage, id: message.id || "" },
-          phone
-        )
-        io.emit("MESSAGE_NEW", transformedMessage)
       }
     }
 
