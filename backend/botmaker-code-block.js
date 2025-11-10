@@ -64,8 +64,4 @@
   }
 })();
 
-// Retornar éxito para continuar el flujo
-return {
-  success: true,
-  message: 'Datos de registro enviados correctamente'
-};
+// No necesitas return en Botmaker, el código se ejecuta y continúa el flujo
