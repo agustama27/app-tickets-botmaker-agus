@@ -1,6 +1,6 @@
-// Bloque de código para Botmaker - Acción de código (Node 20)
+// Bloque de código para Botmaker - Versión Simplificada
+// Acción de código (Node 20)
 // Este código debe ejecutarse después del flujo de registro
-// Envía los datos del registro al webhook de la aplicación
 
 // Obtener las variables del flujo (ya están disponibles globalmente en Botmaker)
 const firstName = contactFirstName || variables?.contactFirstName || '';
@@ -44,25 +44,23 @@ try {
   const responseData = await response.json();
   
   if (response.ok) {
-    console.log('✅ Datos enviados correctamente al webhook:', responseData);
-    if (typeof variables !== 'undefined') {
+    console.log('✅ Datos enviados correctamente');
+    if (variables) {
       variables.registrationSent = 'true';
     }
   } else {
-    console.error('❌ Error al enviar datos:', response.status, responseData);
-    if (typeof variables !== 'undefined') {
+    console.error('❌ Error:', response.status, responseData);
+    if (variables) {
       variables.registrationError = responseData.error || 'Error desconocido';
     }
   }
 } catch (error) {
   console.error('❌ Error de conexión:', error);
-  if (typeof variables !== 'undefined') {
+  if (variables) {
     variables.registrationError = error.message || 'Error de conexión';
   }
 }
 
-// Retornar éxito para continuar el flujo
-return {
-  success: true,
-  message: 'Datos de registro enviados correctamente'
-};
+// Retornar éxito
+return { success: true, message: 'Datos enviados correctamente' };
+
