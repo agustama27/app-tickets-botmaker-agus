@@ -171,6 +171,16 @@ app.get("/health", (req, res) => {
   res.json({ ok: true })
 })
 
+// Endpoint GET para verificar que el webhook está disponible (solo para testing)
+app.get("/webhooks/botmaker", (req, res) => {
+  res.json({ 
+    message: "Webhook endpoint is active. Use POST method to send webhooks.",
+    endpoint: "/webhooks/botmaker",
+    method: "POST",
+    requiredHeader: "x-bm-shared-secret"
+  })
+})
+
 // Webhook Botmaker - Implementación completa
 app.post("/webhooks/botmaker", async (req, res) => {
   const secret = req.headers["x-bm-shared-secret"]
