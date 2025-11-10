@@ -236,13 +236,16 @@ app.post("/webhooks/botmaker", async (req, res) => {
 
     // 1. Buscar o crear contacto
     let contact: Contact | null = null
-    const { data: existingContact } = await supabase
+    let existingContact: Contact | null = null
+    
+    const { data: contactData } = await supabase
       .from("contacts")
       .select("*")
       .eq("phone", phone)
       .single()
 
-    if (existingContact) {
+    if (contactData) {
+      existingContact = contactData
       // Actualizar contacto existente
       const updateData: Partial<Contact> = {
         last_seen: new Date().toISOString(),
@@ -276,12 +279,10 @@ app.post("/webhooks/botmaker", async (req, res) => {
         last_seen: new Date().toISOString(),
       }
 
-      if (contactData) {
-        newContact.name = contactData.name
-        newContact.email = contactData.email
-        newContact.area_id = contactData.area_id
-        newContact.team_id = contactData.team_id
-      }
+      if (contactData.name) newContact.name = contactData.name
+      if (contactData.email) newContact.email = contactData.email
+      if (contactData.area_id) newContact.area_id = contactData.area_id
+      if (contactData.team_id) newContact.team_id = contactData.team_id
 
       const { data: createdContact } = await supabase
         .from("contacts")
@@ -290,6 +291,7 @@ app.post("/webhooks/botmaker", async (req, res) => {
         .single()
 
       contact = createdContact
+      existingContact = null // Es un contacto nuevo
     }
 
     if (!contact) {
@@ -297,7 +299,7 @@ app.post("/webhooks/botmaker", async (req, res) => {
     }
 
     // 2. Detectar si es nueva sesión o mensaje existente
-    const isNewSession = !existingContact || sessionId !== existingContact.chat_id
+    const isNewSession = !existingContact || (existingContact && sessionId !== existingContact.chat_id)
     
     // 3. Si es mensaje o nueva sesión, crear o actualizar ticket
     if (type === "message" || isNewSession) {
