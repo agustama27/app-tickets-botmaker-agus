@@ -183,15 +183,17 @@ app.get("/webhooks/botmaker", (req, res) => {
 
 // Webhook Botmaker - Implementación completa
 app.post("/webhooks/botmaker", async (req, res) => {
-  // Aceptar el secret desde header o desde el body (para compatibilidad con Botmaker)
+  // Aceptar el secret desde header, body, o usar auth-bm-token de Botmaker
   const secretFromHeader = req.headers["x-bm-shared-secret"]
   const secretFromBody = req.body?.secret || req.body?.bm_shared_secret
-  const secret = secretFromHeader || secretFromBody
+  const authBmToken = req.headers["auth-bm-token"] // Token de autenticación de Botmaker
+  const secret = secretFromHeader || secretFromBody || authBmToken
   
   // Debug: Log headers recibidos (solo para debugging, remover en producción)
   console.log("Headers recibidos:", JSON.stringify(req.headers, null, 2))
   console.log("Secret recibido (header):", secretFromHeader ? "***presente***" : "no presente")
   console.log("Secret recibido (body):", secretFromBody ? "***presente***" : "no presente")
+  console.log("Auth-BM-Token recibido:", authBmToken ? "***presente***" : "no presente")
   console.log("Secret esperado:", process.env.BM_SHARED_SECRET ? "***configurado***" : "NO CONFIGURADO")
   
   // Si no hay BM_SHARED_SECRET configurado, permitir acceso (solo para desarrollo)
