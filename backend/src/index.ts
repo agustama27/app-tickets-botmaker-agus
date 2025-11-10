@@ -224,7 +224,7 @@ app.post("/webhooks/botmaker", async (req, res) => {
     }
 
     // Extraer datos del contacto de las variables o del payload
-    const contactData = {
+    const contactInfo = {
       name: variables.name || `${firstName || ""} ${lastName || ""}`.trim() || undefined,
       email: variables.email,
       area_id: variables.area_id,
@@ -238,14 +238,14 @@ app.post("/webhooks/botmaker", async (req, res) => {
     let contact: Contact | null = null
     let existingContact: Contact | null = null
     
-    const { data: contactData } = await supabase
+    const { data: existingContactData } = await supabase
       .from("contacts")
       .select("*")
       .eq("phone", phone)
       .single()
 
-    if (contactData) {
-      existingContact = contactData
+    if (existingContactData) {
+      existingContact = existingContactData
       // Actualizar contacto existente
       const updateData: Partial<Contact> = {
         last_seen: new Date().toISOString(),
@@ -254,12 +254,10 @@ app.post("/webhooks/botmaker", async (req, res) => {
       }
 
       // Si hay datos de registro (primera sesión), actualizar
-      if (contactData) {
-        updateData.name = contactData.name
-        updateData.email = contactData.email
-        updateData.area_id = contactData.area_id
-        updateData.team_id = contactData.team_id
-      }
+      if (contactInfo.name) updateData.name = contactInfo.name
+      if (contactInfo.email) updateData.email = contactInfo.email
+      if (contactInfo.area_id) updateData.area_id = contactInfo.area_id
+      if (contactInfo.team_id) updateData.team_id = contactInfo.team_id
 
       const { data: updatedContact } = await supabase
         .from("contacts")
@@ -279,10 +277,10 @@ app.post("/webhooks/botmaker", async (req, res) => {
         last_seen: new Date().toISOString(),
       }
 
-      if (contactData.name) newContact.name = contactData.name
-      if (contactData.email) newContact.email = contactData.email
-      if (contactData.area_id) newContact.area_id = contactData.area_id
-      if (contactData.team_id) newContact.team_id = contactData.team_id
+      if (contactInfo.name) newContact.name = contactInfo.name
+      if (contactInfo.email) newContact.email = contactInfo.email
+      if (contactInfo.area_id) newContact.area_id = contactInfo.area_id
+      if (contactInfo.team_id) newContact.team_id = contactInfo.team_id
 
       const { data: createdContact } = await supabase
         .from("contacts")
