@@ -192,6 +192,105 @@ The application listens for these Socket.IO events:
 - Firefox (latest)
 - Safari (latest)
 
+## 🚀 Deployment en Vercel
+
+### Prerequisitos
+
+- Cuenta en [Vercel](https://vercel.com)
+- Backend deployado y accesible públicamente
+- Repositorio Git (GitHub, GitLab, o Bitbucket)
+
+### Pasos para Deployar
+
+#### 1. Preparar el Repositorio
+
+Asegúrate de que tu código esté en un repositorio Git y que la carpeta `Frontend` esté en la raíz del repositorio.
+
+#### 2. Conectar con Vercel
+
+1. Ve a [vercel.com](https://vercel.com) e inicia sesión
+2. Haz clic en "Add New Project"
+3. Importa tu repositorio Git
+4. Vercel detectará automáticamente que es un proyecto Next.js
+
+#### 3. Configurar el Proyecto
+
+**Configuración del Framework:**
+- Framework Preset: **Next.js** (debería detectarse automáticamente)
+- Root Directory: **Frontend** (si tu repositorio tiene la carpeta Frontend en la raíz)
+- Build Command: `pnpm build` (o `npm run build` si usas npm)
+- Output Directory: `.next` (por defecto para Next.js)
+- Install Command: `pnpm install` (o `npm install`)
+
+**Variables de Entorno:**
+
+Agrega las siguientes variables de entorno en la configuración del proyecto en Vercel:
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://tu-backend-url.com
+NEXT_PUBLIC_WS_URL=https://tu-backend-url.com
+```
+
+**Nota importante:** 
+- Reemplaza `https://tu-backend-url.com` con la URL real de tu backend deployado
+- Si tu backend está en Railway, Render, o similar, usa la URL que te proporcionaron
+- Asegúrate de que el backend tenga CORS configurado para permitir requests desde tu dominio de Vercel
+
+#### 4. Deployar
+
+1. Haz clic en "Deploy"
+2. Vercel construirá y desplegará tu aplicación
+3. Una vez completado, recibirás una URL (ej: `tu-app.vercel.app`)
+
+#### 5. Configurar Dominio Personalizado (Opcional)
+
+1. Ve a Settings > Domains
+2. Agrega tu dominio personalizado
+3. Sigue las instrucciones para configurar los DNS
+
+### Configuración Adicional
+
+#### Si tu backend usa WebSockets
+
+Asegúrate de que:
+- Tu backend soporte conexiones WebSocket
+- El backend tenga CORS configurado correctamente
+- Si usas Socket.IO, verifica que la versión del cliente sea compatible
+
+#### Variables de Entorno en Producción
+
+En Vercel, puedes configurar variables de entorno:
+- Por proyecto (aplican a todos los deployments)
+- Por ambiente (Production, Preview, Development)
+
+Para acceder:
+1. Ve a tu proyecto en Vercel
+2. Settings > Environment Variables
+3. Agrega las variables necesarias
+
+### Troubleshooting
+
+**Error de Build:**
+- Verifica que todas las dependencias estén en `package.json`
+- Revisa los logs de build en Vercel para ver errores específicos
+
+**Error de Conexión con Backend:**
+- Verifica que `NEXT_PUBLIC_API_BASE_URL` esté configurado correctamente
+- Asegúrate de que el backend esté accesible públicamente
+- Verifica la configuración de CORS en el backend
+
+**WebSocket no funciona:**
+- Verifica que `NEXT_PUBLIC_WS_URL` esté configurado
+- Asegúrate de que el backend soporte WebSockets
+- Revisa la consola del navegador para errores de conexión
+
+### Actualizaciones Automáticas
+
+Vercel despliega automáticamente cuando:
+- Haces push a la rama principal (production)
+- Creas un Pull Request (preview deployment)
+- Haces push a otras ramas (preview deployment)
+
 ## License
 
 Private - All rights reserved
