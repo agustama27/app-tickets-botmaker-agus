@@ -183,22 +183,33 @@ app.get("/webhooks/botmaker", (req, res) => {
 
 // Webhook Botmaker - Implementación completa
 app.post("/webhooks/botmaker", async (req, res) => {
-  const secret = req.headers["x-bm-shared-secret"]
+  // Aceptar el secret desde header o desde el body (para compatibilidad con Botmaker)
+  const secretFromHeader = req.headers["x-bm-shared-secret"]
+  const secretFromBody = req.body?.secret || req.body?.bm_shared_secret
+  const secret = secretFromHeader || secretFromBody
   
   // Debug: Log headers recibidos (solo para debugging, remover en producción)
   console.log("Headers recibidos:", JSON.stringify(req.headers, null, 2))
-  console.log("Secret recibido:", secret)
+  console.log("Secret recibido (header):", secretFromHeader ? "***presente***" : "no presente")
+  console.log("Secret recibido (body):", secretFromBody ? "***presente***" : "no presente")
   console.log("Secret esperado:", process.env.BM_SHARED_SECRET ? "***configurado***" : "NO CONFIGURADO")
   
-  if (secret !== process.env.BM_SHARED_SECRET) {
-    console.log("❌ Header no coincide o falta")
+  // Si no hay BM_SHARED_SECRET configurado, permitir acceso (solo para desarrollo)
+  if (!process.env.BM_SHARED_SECRET) {
+    console.log("⚠️ BM_SHARED_SECRET no configurado - permitiendo acceso sin autenticación")
+  } else if (secret !== process.env.BM_SHARED_SECRET) {
+    console.log("❌ Secret no coincide o falta")
     return res.status(401).json({ error: "Unauthorized" })
   }
   
-  console.log("✅ Header válido, procesando webhook...")
+  console.log("✅ Secret válido, procesando webhook...")
 
   try {
-    const payload = req.body
+    // Remover el secret del body si está presente (para no guardarlo en logs)
+    const payload = { ...req.body }
+    if (payload.secret) delete payload.secret
+    if (payload.bm_shared_secret) delete payload.bm_shared_secret
+    
     console.log("Botmaker webhook received:", JSON.stringify(payload, null, 2))
 
     // Formato real de Botmaker:
