@@ -174,9 +174,18 @@ app.get("/health", (req, res) => {
 // Webhook Botmaker - Implementación completa
 app.post("/webhooks/botmaker", async (req, res) => {
   const secret = req.headers["x-bm-shared-secret"]
+  
+  // Debug: Log headers recibidos (solo para debugging, remover en producción)
+  console.log("Headers recibidos:", JSON.stringify(req.headers, null, 2))
+  console.log("Secret recibido:", secret)
+  console.log("Secret esperado:", process.env.BM_SHARED_SECRET ? "***configurado***" : "NO CONFIGURADO")
+  
   if (secret !== process.env.BM_SHARED_SECRET) {
+    console.log("❌ Header no coincide o falta")
     return res.status(401).json({ error: "Unauthorized" })
   }
+  
+  console.log("✅ Header válido, procesando webhook...")
 
   try {
     const payload = req.body
