@@ -6,19 +6,51 @@ import { supabase, type Ticket, type Contact, type Message, type UserApp } from 
 
 const app = express()
 const httpServer = createServer(app)
+
+// Función para validar origen con soporte para patrones de Vercel
+function originValidator(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+  if (!origin) {
+    return callback(null, false)
+  }
+
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean)
+  
+  // Verificar si el origen está en la lista exacta
+  if (allowedOrigins.includes(origin)) {
+    return callback(null, true)
+  }
+
+  // Verificar patrones de Vercel (*.vercel.app)
+  // Esto permite cualquier subdominio de vercel.app si está configurado
+  const vercelPattern = allowedOrigins.find((pattern) => pattern.includes("*.vercel.app"))
+  if (vercelPattern && origin.endsWith(".vercel.app")) {
+    return callback(null, true)
+  }
+
+  // Verificar otros patrones wildcard (ej: *.tudominio.com)
+  for (const pattern of allowedOrigins) {
+    if (pattern.includes("*")) {
+      const regexPattern = pattern.replace(/\*/g, ".*").replace(/\./g, "\\.")
+      const regex = new RegExp(`^${regexPattern}$`)
+      if (regex.test(origin)) {
+        return callback(null, true)
+      }
+    }
+  }
+
+  callback(null, false)
+}
+
+const corsOptions = {
+  origin: originValidator,
+  credentials: true,
+}
+
 const io = new Server(httpServer, {
-  cors: {
-    origin: (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean),
-    credentials: true,
-  },
+  cors: corsOptions,
 })
 
-app.use(
-  cors({
-    origin: (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean),
-    credentials: true,
-  })
-)
+app.use(cors(corsOptions))
 app.use(express.json())
 
 const PORT = process.env.PORT || 8080
