@@ -10,13 +10,23 @@ const httpServer = createServer(app)
 // Función para validar origen con soporte para patrones de Vercel
 function originValidator(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
   if (!origin) {
+    console.log("CORS: No origin header")
     return callback(null, false)
   }
 
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean)
   
+  // Log para debugging (solo en desarrollo)
+  if (process.env.NODE_ENV !== "production") {
+    console.log("CORS: Checking origin:", origin)
+    console.log("CORS: Allowed origins:", allowedOrigins)
+  }
+  
   // Verificar si el origen está en la lista exacta
   if (allowedOrigins.includes(origin)) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("CORS: Origin matched exactly")
+    }
     return callback(null, true)
   }
 
@@ -24,20 +34,31 @@ function originValidator(origin: string | undefined, callback: (err: Error | nul
   // Esto permite cualquier subdominio de vercel.app si está configurado
   const vercelPattern = allowedOrigins.find((pattern) => pattern.includes("*.vercel.app"))
   if (vercelPattern && origin.endsWith(".vercel.app")) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("CORS: Origin matched Vercel pattern")
+    }
     return callback(null, true)
   }
 
   // Verificar otros patrones wildcard (ej: *.tudominio.com)
   for (const pattern of allowedOrigins) {
     if (pattern.includes("*")) {
+      // Convertir patrón wildcard a regex
+      // Ej: https://*.vercel.app -> https://.*\.vercel\.app
       const regexPattern = pattern.replace(/\*/g, ".*").replace(/\./g, "\\.")
       const regex = new RegExp(`^${regexPattern}$`)
       if (regex.test(origin)) {
+        if (process.env.NODE_ENV !== "production") {
+          console.log("CORS: Origin matched wildcard pattern:", pattern)
+        }
         return callback(null, true)
       }
     }
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    console.log("CORS: Origin NOT allowed:", origin)
+  }
   callback(null, false)
 }
 
@@ -597,16 +618,30 @@ app.post("/auth/logout", (req, res) => {
 
 app.get("/auth/session", async (req, res) => {
   try {
+    // Log para debugging
+    console.log("GET /auth/session - Origin:", req.headers.origin)
+    console.log("GET /auth/session - Headers:", JSON.stringify(req.headers, null, 2))
+    
     // TODO: Implementar sesión real con JWT
-    const { data: users } = await supabase
+    // Por ahora, devolvemos el primer usuario si existe
+    // En producción, deberías usar JWT o cookies de sesión
+    const { data: users, error: usersError } = await supabase
       .from("user_app")
       .select("*")
       .limit(1)
 
-    if (!users || users.length === 0) {
-      return res.status(401).json({ error: "Not authenticated" })
+    if (usersError) {
+      console.error("Session error (Supabase):", usersError)
+      return res.status(500).json({ error: "Database error", details: usersError.message })
     }
 
+    if (!users || users.length === 0) {
+      console.log("Session: No users found in database")
+      // Devolver 401 pero con un mensaje más claro
+      return res.status(401).json({ error: "Not authenticated", message: "No users found in database" })
+    }
+
+    console.log("Session: User found:", users[0].email)
     res.json({ user: users[0] })
   } catch (error) {
     console.error("Session error:", error)
