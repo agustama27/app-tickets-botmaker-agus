@@ -1,7 +1,7 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-mock-auth"
-import { useAreas, useTeams } from "@/hooks/use-mock-structure"
+import { useAuth } from "@/hooks/use-auth"
+import { useAreas, useTeams } from "@/hooks/use-structure"
 import { canAccessAdminStructure } from "@/lib/rbac"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -12,8 +12,8 @@ import Link from "next/link"
 export default function AdminStructurePage() {
   const { user } = useAuth()
 
-  const { areas, isLoading: areasLoading } = useAreas()
-  const { teams, isLoading: teamsLoading } = useTeams()
+  const { data: areas = [], isLoading: areasLoading } = useAreas()
+  const { data: teams = [], isLoading: teamsLoading } = useTeams()
 
   if (!canAccessAdminStructure(user)) {
     return (

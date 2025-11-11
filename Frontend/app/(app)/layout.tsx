@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useAuth } from "@/hooks/use-mock-auth"
+import { useAuth } from "@/hooks/use-auth"
 import { AppHeader } from "@/components/layout/app-header"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { useRouter } from "next/navigation"

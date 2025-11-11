@@ -8,35 +8,58 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/use-mock-auth"
+import { useLogin } from "@/hooks/use-login"
 import { toast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const loginMutation = useLogin()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
 
     try {
-      await login(email, password)
+      await loginMutation.mutateAsync({ email, password })
       toast({
         title: "Inicio de sesión exitoso",
         description: "¡Bienvenido de nuevo!",
       })
+      // Small delay to ensure session is set before redirecting
+      await new Promise((resolve) => setTimeout(resolve, 100))
       router.push("/")
-    } catch (error) {
+      router.refresh() // Force refresh to update the layout
+    } catch (error: any) {
+      console.error("Error de login:", error)
+      
+      let errorMessage = "Credenciales incorrectas"
+      
+      if (error?.response) {
+        // Error del servidor
+        const status = error.response.status
+        const data = error.response.data
+        
+        if (status === 401) {
+          errorMessage = data?.message || "Email o contraseña incorrectos"
+        } else if (status === 404) {
+          errorMessage = "Usuario no encontrado. Verifica que el usuario exista en la base de datos."
+        } else if (status === 500) {
+          errorMessage = "Error del servidor. Verifica que el backend esté funcionando correctamente."
+        } else {
+          errorMessage = data?.message || `Error ${status}: ${error.message}`
+        }
+      } else if (error?.code === "ERR_NETWORK") {
+        errorMessage = "No se pudo conectar al servidor. Verifica que el backend esté corriendo."
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      
       toast({
         title: "Error al iniciar sesión",
-        description: "Email no encontrado. Intenta: admin@company.com, agent@company.com, o user@company.com",
+        description: errorMessage,
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -51,7 +74,7 @@ export default function LoginPage() {
             <span className="text-2xl font-bold">IT Support Tickets</span>
           </div>
           <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-          <CardDescription>Ingresa tu email para acceder (cualquier contraseña funciona)</CardDescription>
+          <CardDescription>Ingresa tus credenciales para acceder</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,26 +87,23 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={loginMutation.isPending}
               />
-              <p className="text-xs text-muted-foreground">
-                Prueba: admin@company.com, agent@company.com, o user@company.com
-              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Cualquier contraseña"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={loginMutation.isPending}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+            <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
         </CardContent>

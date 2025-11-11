@@ -9,7 +9,7 @@ import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { getUserById } from "@/lib/mock-data"
+// Note: User info should come from ticket or separate query
 
 interface TicketCardProps {
   ticket: Ticket
@@ -71,7 +71,6 @@ export function TicketCard({ ticket, isDragging = false }: TicketCardProps) {
   }
 
   const dragging = isDragging || isSortableDragging
-  const assignedUser = ticket.assignedToId ? getUserById(ticket.assignedToId) : null
   const priorityStyles = getPriorityStyles(ticket.priority)
 
   return (
@@ -108,15 +107,10 @@ export function TicketCard({ ticket, isDragging = false }: TicketCardProps) {
                 <span className="font-mono" style={{ color: "#6FA0FF" }}>
                   #{ticket.id.slice(0, 6)}
                 </span>
-                {assignedUser && (
+                {ticket.assignedToId && (
                   <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
                     <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-[#7A3EFF] via-[#1E66FF] to-[#00D4FF] text-white">
-                      {assignedUser.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
+                      {ticket.assignedToId.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 )}

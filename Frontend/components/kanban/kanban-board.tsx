@@ -15,7 +15,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { Ticket, TicketStatus } from "@/types"
 import { KanbanColumn } from "./kanban-column"
 import { TicketCard } from "./ticket-card"
-import { useTickets } from "@/hooks/use-mock-tickets"
+import { useUpdateTicket } from "@/hooks/use-tickets"
 import { toast } from "@/hooks/use-toast"
 
 interface KanbanBoardProps {
@@ -33,7 +33,7 @@ const COLUMNS: { id: TicketStatus; label: string }[] = [
 
 export function KanbanBoard({ tickets }: KanbanBoardProps) {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null)
-  const { updateTicket } = useTickets()
+  const updateTicketMutation = useUpdateTicket()
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -79,7 +79,7 @@ export function KanbanBoard({ tickets }: KanbanBoardProps) {
 
     const previousStatus = ticket.status
     try {
-      await updateTicket(ticketId, { status: newStatus })
+      await updateTicketMutation.mutateAsync({ id: ticketId, updates: { status: newStatus } })
       toast({
         title: "Ticket actualizado",
         description: "Estado cambiado exitosamente",

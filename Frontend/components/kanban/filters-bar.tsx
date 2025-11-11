@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, X, Filter } from "lucide-react"
 import type { TicketPriority, TicketFilters } from "@/types"
-import { useAreas, useTeams } from "@/hooks/use-mock-structure"
+import { useAreas, useTeams } from "@/hooks/use-structure"
 
 interface FiltersBarProps {
   filters: TicketFilters

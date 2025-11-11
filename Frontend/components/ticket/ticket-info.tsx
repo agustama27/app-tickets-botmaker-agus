@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Calendar, Clock, User } from "lucide-react"
-import { getUserById } from "@/lib/mock-data"
+// Note: User info should come from ticket or separate query
 
 interface TicketInfoProps {
   ticket: Ticket
@@ -14,8 +14,9 @@ const formatDate = (date: Date) => {
 }
 
 export function TicketInfo({ ticket }: TicketInfoProps) {
-  const assignedUser = ticket.assignedToId ? getUserById(ticket.assignedToId) : null
-  const createdByUser = getUserById(ticket.userId)
+  // TODO: Fetch user names if needed from API
+  const assignedUserId = ticket.assignedToId
+  const createdByUserId = ticket.userId
 
   return (
     <Card>
@@ -65,16 +66,16 @@ export function TicketInfo({ ticket }: TicketInfoProps) {
               <User className="h-4 w-4" />
               <span>Creado por</span>
             </div>
-            <p className="text-sm font-medium">{createdByUser?.name || "Usuario desconocido"}</p>
+            <p className="text-sm font-medium">{createdByUserId || "Usuario desconocido"}</p>
           </div>
 
-          {assignedUser && (
+          {assignedUserId && (
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>Asignado a</span>
               </div>
-              <p className="text-sm font-medium">{assignedUser.name}</p>
+              <p className="text-sm font-medium">{assignedUserId}</p>
             </div>
           )}
         </div>

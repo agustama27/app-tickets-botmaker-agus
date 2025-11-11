@@ -1,7 +1,7 @@
 "use client"
 
-import { useContacts } from "@/hooks/use-mock-contacts"
-import { getAreaById } from "@/lib/mock-data"
+import { useContacts } from "@/hooks/use-contacts"
+import { useAreas } from "@/hooks/use-structure"
 import { DataTable } from "@/components/data-table/data-table"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Contact } from "@/types"
@@ -31,15 +31,18 @@ const columns: ColumnDef<Contact>[] = [
   {
     accessorKey: "areaId",
     header: "Área",
-    cell: ({ row }) => {
-      const area = row.original.areaId ? getAreaById(row.original.areaId) : null
+    cell: ({ row, table }) => {
+      const areas = (table.options.meta as any)?.areas || []
+      const area = row.original.areaId ? areas.find((a: any) => a.id === row.original.areaId) : null
       return area ? <Badge variant="outline">{area.name}</Badge> : "—"
     },
   },
 ]
 
 export default function ContactsPage() {
-  const { contacts, isLoading } = useContacts()
+  const { data: contacts = [], isLoading: contactsLoading } = useContacts()
+  const { data: areas = [], isLoading: areasLoading } = useAreas()
+  const isLoading = contactsLoading || areasLoading
 
   return (
     <div className="space-y-6">
@@ -59,7 +62,13 @@ export default function ContactsPage() {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
           ) : (
-            <DataTable columns={columns} data={contacts} searchKey="name" searchPlaceholder="Buscar por nombre..." />
+            <DataTable 
+              columns={columns} 
+              data={contacts} 
+              searchKey="name" 
+              searchPlaceholder="Buscar por nombre..."
+              meta={{ areas }}
+            />
           )}
         </CardContent>
       </Card>

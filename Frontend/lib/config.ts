@@ -26,3 +26,9 @@ export const backendConfig = {
   wsUrl: WS_URL,
 } as const
 
+/**
+ * Nota: La exposición de configuración en window.__APP_CONFIG__ 
+ * se hace en components/config-init.tsx usando useEffect
+ * para asegurar que se ejecute solo en el cliente
+ */
+

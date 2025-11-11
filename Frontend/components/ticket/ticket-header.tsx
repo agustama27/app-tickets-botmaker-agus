@@ -4,9 +4,9 @@ import type { Ticket, TicketStatus, TicketPriority } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { canAssignTickets } from "@/lib/rbac"
-import { useAuth } from "@/hooks/use-mock-auth"
-import { useTicket } from "@/hooks/use-mock-tickets"
-import { getUserById, getAreaById, getTeamById } from "@/lib/mock-data"
+import { useAuth } from "@/hooks/use-auth"
+import { useUpdateTicket } from "@/hooks/use-tickets"
+import { useAreas, useTeams } from "@/hooks/use-structure"
 import { toast } from "@/hooks/use-toast"
 
 interface TicketHeaderProps {
@@ -50,16 +50,19 @@ const getPriorityColor = (priority: TicketPriority) => {
 
 export function TicketHeader({ ticket }: TicketHeaderProps) {
   const { user } = useAuth()
-  const { updateStatus, updatePriority } = useTicket(ticket.id)
+  const updateTicketMutation = useUpdateTicket()
+  const { data: areas = [] } = useAreas()
+  const { data: teams = [] } = useTeams()
   const canAssign = canAssignTickets(user)
 
-  const assignedUser = ticket.assignedToId ? getUserById(ticket.assignedToId) : null
-  const area = ticket.areaId ? getAreaById(ticket.areaId) : null
-  const team = ticket.teamId ? getTeamById(ticket.teamId) : null
+  // Find area and team from the data
+  const area = ticket.areaId ? areas.find((a) => a.id === ticket.areaId) : null
+  const team = ticket.teamId ? teams.find((t) => t.id === ticket.teamId) : null
+  // Note: assignedUser info should come from ticket or separate query if needed
 
   const handleStatusChange = async (value: string) => {
     try {
-      await updateStatus(value as TicketStatus)
+      await updateTicketMutation.mutateAsync({ id: ticket.id, updates: { status: value as TicketStatus } })
       toast({ title: "Estado actualizado" })
     } catch (error) {
       toast({ title: "Error al actualizar estado", variant: "destructive" })
@@ -68,7 +71,7 @@ export function TicketHeader({ ticket }: TicketHeaderProps) {
 
   const handlePriorityChange = async (value: string) => {
     try {
-      await updatePriority(value as TicketPriority)
+      await updateTicketMutation.mutateAsync({ id: ticket.id, updates: { priority: value as TicketPriority } })
       toast({ title: "Prioridad actualizada" })
     } catch (error) {
       toast({ title: "Error al actualizar prioridad", variant: "destructive" })
@@ -120,11 +123,11 @@ export function TicketHeader({ ticket }: TicketHeaderProps) {
           </Select>
         </div>
 
-        {assignedUser && (
+        {ticket.assignedToId && (
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Asignado a</label>
             <div className="flex h-10 items-center rounded-md border bg-background px-3 text-sm">
-              {assignedUser.name}
+              {ticket.assignedToId} {/* TODO: Fetch user name if needed */}
             </div>
           </div>
         )}

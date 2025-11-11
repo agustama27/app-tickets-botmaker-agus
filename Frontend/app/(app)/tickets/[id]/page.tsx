@@ -1,8 +1,8 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-mock-auth"
-import { useTicket } from "@/hooks/use-mock-tickets"
-import { useMessages } from "@/hooks/use-mock-messages"
+import { useAuth } from "@/hooks/use-auth"
+import { useTicket, useReplyToTicket } from "@/hooks/use-tickets"
+import { useMessages } from "@/hooks/use-messages"
 import { TicketHeader } from "@/components/ticket/ticket-header"
 import { MessageList } from "@/components/ticket/message-list"
 import { Composer } from "@/components/ticket/composer"
@@ -20,13 +20,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const ticketId = resolvedParams.id
 
   const { user } = useAuth()
-  const { ticket, isLoading: ticketLoading } = useTicket(ticketId)
-  const { messages, isLoading: messagesLoading, sendMessage } = useMessages(ticketId)
+  const { data: ticket, isLoading: ticketLoading } = useTicket(ticketId)
+  const { data: messages = [], isLoading: messagesLoading } = useMessages(ticketId)
+  const replyMutation = useReplyToTicket()
 
   const handleSendMessage = async (text: string) => {
-    if (!user) return
+    if (!user || !ticketId) return
     try {
-      await sendMessage(text, user.id, false)
+      await replyMutation.mutateAsync({ ticketId, text })
       toast({ title: "Mensaje enviado" })
     } catch (error) {
       toast({

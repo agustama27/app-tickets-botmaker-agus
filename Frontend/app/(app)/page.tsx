@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useAuth } from "@/hooks/use-mock-auth"
-import { useTickets } from "@/hooks/use-mock-tickets"
+import { useAuth } from "@/hooks/use-auth"
+import { useTickets } from "@/hooks/use-tickets"
 import { KanbanBoard } from "@/components/kanban/kanban-board"
 import { FiltersBar } from "@/components/kanban/filters-bar"
 import type { TicketFilters } from "@/types"
@@ -14,7 +14,8 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const [filters, setFilters] = useState<TicketFilters>({ scope: "all" })
 
-  const { tickets, isLoading } = useTickets()
+  const { data: ticketsData, isLoading } = useTickets(filters)
+  const tickets = ticketsData?.tickets || []
 
   const filteredTickets = useMemo(() => {
     let result = [...tickets]

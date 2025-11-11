@@ -2,7 +2,7 @@ import type { Message } from "@/types"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { getUserById } from "@/lib/mock-data"
+// Note: User info should come from message or separate query
 import { Badge } from "@/components/ui/badge"
 
 interface MessageBubbleProps {
@@ -14,8 +14,9 @@ const formatDate = (date: Date) => {
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  const user = getUserById(message.userId)
-  const isAgent = user?.role === "agent" || user?.role === "admin"
+  // TODO: Get user role from message or separate query
+  // For now, assume messages from backend include user info
+  const isAgent = message.userRole === "agent" || message.userRole === "admin" || false
 
   return (
     <div className={cn("flex flex-col", isAgent ? "items-start" : "items-end")}>
@@ -27,7 +28,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         <div className="flex items-center gap-2 mb-1">
           <p className={cn("text-xs font-medium", isAgent ? "text-foreground" : "text-primary-foreground")}>
-            {user?.name || "Usuario"}
+            {message.userName || message.userId || "Usuario"}
           </p>
           {message.isInternal && (
             <Badge variant="secondary" className="text-xs py-0 h-4">

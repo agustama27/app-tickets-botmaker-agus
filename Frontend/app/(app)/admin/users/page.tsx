@@ -1,7 +1,7 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-mock-auth"
-import { useUsers } from "@/hooks/use-mock-users"
+import { useAuth } from "@/hooks/use-auth"
+import { useUsers } from "@/hooks/use-users"
 import { canAccessAdminUsers } from "@/lib/rbac"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge"
 
 export default function AdminUsersPage() {
   const { user } = useAuth()
-  const { users, isLoading } = useUsers()
+  const { data: usersData, isLoading } = useUsers()
+  const users = usersData ? [usersData] : [] // getSelf returns single user, adjust if you have getAllUsers endpoint
 
   if (!canAccessAdminUsers(user)) {
     return (
